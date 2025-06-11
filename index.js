@@ -40,11 +40,19 @@ async function run() {
     })
     // all-packeges
 
-    app.get('/packages', async(req,res)=>{
-      const cursor = packagesCollection.find();
-      const result = await cursor.toArray()
-      res.send(result)
-    })
+    app.get('/packages', async (req, res) => {
+   const search = req.query.search || '';
+   const query = {
+    $or: [
+      { tour_name: { $regex: search, $options: 'i' } },
+      { destination: { $regex: search, $options: 'i' } }
+    ]
+     };
+     const packages = await packagesCollection.find(query).toArray();
+     res.send(packages);
+     });
+ 
+   
     // package details api
     app.get('/packages/:id',async(req,res)=>{
       const id = req.params.id;
@@ -52,6 +60,7 @@ async function run() {
       const result =await packagesCollection.findOne(query);
       res.send(result)
     })
+   
 
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
