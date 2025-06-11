@@ -29,13 +29,20 @@ async function run() {
     // Connect the client to the server	(optional starting in v4.7)
     await client.connect();
     const packagesCollection = client.db('packageCode').collection('tourPackages');
-    //  home package api
+    //  features-package api
     app.get('/featured-packages',async(req,res)=>{
        const cursor = packagesCollection
       .find({})
       .sort({ bookingCount: -1 }) 
       .limit(6);
       const result = await cursor.toArray();
+      res.send(result)
+    })
+    // all-packeges
+
+    app.get('/packages', async(req,res)=>{
+      const cursor = packagesCollection.find();
+      const result = await cursor.toArray()
       res.send(result)
     })
 
