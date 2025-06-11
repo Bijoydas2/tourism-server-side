@@ -28,6 +28,17 @@ async function run() {
   try {
     // Connect the client to the server	(optional starting in v4.7)
     await client.connect();
+    const packagesCollection = client.db('packageCode').collection('tourPackages');
+    //  home package api
+    app.get('/featured-packages',async(req,res)=>{
+       const cursor = packagesCollection
+      .find({})
+      .sort({ bookingCount: -1 }) 
+      .limit(6);
+      const result = await cursor.toArray();
+      res.send(result)
+    })
+
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
     console.log("Pinged your deployment. You successfully connected to MongoDB!");
