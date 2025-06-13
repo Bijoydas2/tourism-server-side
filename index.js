@@ -61,6 +61,11 @@ async function run() {
       const result =await packagesCollection.findOne(query);
       res.send(result)
     })
+    app.post('/packages', async(req,res)=>{
+      const newPackage= req.body;
+      const result = await packagesCollection.insertOne(newPackage);
+      res.send(result)
+    })
 
     //  booking related api
     app.get('/bookings',async(req,res)=>{
@@ -79,6 +84,19 @@ async function run() {
       const result = await bookingCollection.insertOne(booking);
       res.send(result)
     })
+    // Update booking status to "completed"
+    app.patch('/bookings/:id', async (req, res) => {
+      const id = req.params.id;
+      const filter = { _id: new ObjectId(id) };
+      const updateDoc = {
+      $set: {
+      status: 'completed'
+     }
+    };
+      const result = await bookingCollection.updateOne(filter, updateDoc);
+      res.send(result);
+     });
+
    
 
     // Send a ping to confirm a successful connection
