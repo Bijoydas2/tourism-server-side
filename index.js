@@ -29,6 +29,7 @@ async function run() {
     // Connect the client to the server	(optional starting in v4.7)
     await client.connect();
     const packagesCollection = client.db('packageCode').collection('tourPackages');
+    const bookingCollection = client.db('packageCode').collection('bookings')
     //  features-package api
     app.get('/featured-packages',async(req,res)=>{
        const cursor = packagesCollection
@@ -58,6 +59,13 @@ async function run() {
       const id = req.params.id;
       const query = { _id: new ObjectId(id)}
       const result =await packagesCollection.findOne(query);
+      res.send(result)
+    })
+
+    //  booking related api
+    app.post('/bookings',async(req,res)=>{
+      const booking = req.body;
+      const result = await bookingCollection.insertOne(booking);
       res.send(result)
     })
    
