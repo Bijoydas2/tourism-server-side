@@ -42,16 +42,22 @@ async function run() {
     // all-packeges
 
     app.get('/packages', async (req, res) => {
-   const search = req.query.search || '';
-   const query = {
-    $or: [
-      { tour_name: { $regex: search, $options: 'i' } },
-      { destination: { $regex: search, $options: 'i' } }
-    ]
-     };
-     const packages = await packagesCollection.find(query).toArray();
-     res.send(packages);
-     });
+    const email = req.query.email;
+    const search = req.query.search || '';
+
+  const query = {
+    ...(email && { guide_email: email }),
+    ...(search && {
+      $or: [
+        { tour_name: { $regex: search, $options: 'i' } },
+        { destination: { $regex: search, $options: 'i' } }
+      ]
+    })
+  };
+
+  const packages = await packagesCollection.find(query).toArray();
+  res.send(packages);
+});
  
    
     // package details api
@@ -66,6 +72,16 @@ async function run() {
       const result = await packagesCollection.insertOne(newPackage);
       res.send(result)
     })
+    app.patch('/packages/:id',async(req, res) => {
+    const id = req.params.id;
+    const updatedData = req.body;
+    const filter = { _id: new ObjectId(id) };
+    const updateDoc = {
+    $set: updatedData
+    };
+    const result = await packagesCollection.updateOne(filter, updateDoc)
+    res.send(result)
+   });
 
     //  booking related api
     app.get('/bookings',async(req,res)=>{
@@ -84,7 +100,7 @@ async function run() {
       const result = await bookingCollection.insertOne(booking);
       res.send(result)
     })
-    // Update booking status to "completed"
+    // Update booking 
     app.patch('/bookings/:id', async (req, res) => {
       const id = req.params.id;
       const filter = { _id: new ObjectId(id) };
@@ -96,7 +112,7 @@ async function run() {
       const result = await bookingCollection.updateOne(filter, updateDoc);
       res.send(result);
      });
-
+    
    
 
     // Send a ping to confirm a successful connection
