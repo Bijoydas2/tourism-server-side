@@ -82,6 +82,13 @@ async function run() {
     const result = await packagesCollection.updateOne(filter, updateDoc)
     res.send(result)
    });
+   app.delete('/packages/:id', async (req, res) => {
+    const id = req.params.id;
+    const query = { _id: new ObjectId(id) };
+
+    const result = await packagesCollection.deleteOne(query);
+    res.send(result);
+   });
 
     //  booking related api
     app.get('/bookings',async(req,res)=>{
