@@ -105,6 +105,13 @@ async function run() {
     app.post('/bookings',async(req,res)=>{
       const booking = req.body;
       const result = await bookingCollection.insertOne(booking);
+      const tourId = booking.tour_id;
+      if(tourId){
+        await packagesCollection.updateOne(
+           { _id: new ObjectId(tourId) },
+           { $inc: { bookingCount: 1 } }
+        )
+      }
       res.send(result)
     })
     // Update booking 
