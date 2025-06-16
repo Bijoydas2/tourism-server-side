@@ -4,11 +4,19 @@ const app=express();
 const port =process.env.PORT || 3000;
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 require('dotenv').config();
+const admin = require("firebase-admin");
+
+const serviceAccount = require("./firebase-admin-service-key.json");
+
 
 // middleware 
 app.use(cors());
 app.use(express.json());
 
+
+admin.initializeApp({
+  credential: admin.credential.cert(serviceAccount)
+});
 
 
 
@@ -24,6 +32,33 @@ const client = new MongoClient(uri, {
   }
 });
 
+
+const verifyFirebaseToken = async(req,res,next)=>{
+    const authHeader = req.headers?.authorization;
+    if(!authHeader || !authHeader.startsWith('Bearer ')){
+      return res.status(401).send({message: 'unauthorized access'})
+    }
+    const token = authHeader.split(' ')[1]
+    try{
+       const decoded = await admin.auth().verifyIdToken(token);
+       console.log('decoded token',decoded)
+       req.decoded= decoded;
+       next()
+    }
+    catch(error){
+      return res.status(401).send({message : 'unauthorized access'})
+    }
+    
+  }
+
+  const verifyTokenEmail = (req,res,next)=>{
+        if (req.query.email !== req.decoded.email){
+         return res.status(403).send({ message: 'forbidden access' });
+
+      }
+      next()
+ }
+
 async function run() {
   try {
     // Connect the client to the server	(optional starting in v4.7)
@@ -31,7 +66,7 @@ async function run() {
     const packagesCollection = client.db('packageCode').collection('tourPackages');
     const bookingCollection = client.db('packageCode').collection('bookings')
     //  features-package api
-    app.get('/featured-packages',async(req,res)=>{
+    app.get('/featuredPackages',async(req,res)=>{
        const cursor = packagesCollection
       .find({})
       .sort({ bookingCount: -1 }) 
@@ -44,8 +79,8 @@ async function run() {
     app.get('/packages', async (req, res) => {
     const email = req.query.email;
     const search = req.query.search || '';
-
-  const query = {
+     
+    const query = {
     ...(email && { guide_email: email }),
     ...(search && {
       $or: [
@@ -54,25 +89,37 @@ async function run() {
       ]
     })
   };
-
   const packages = await packagesCollection.find(query).toArray();
   res.send(packages);
-});
- 
+  });
+
+
+
+  app.get('/packages/myPackages', verifyFirebaseToken,verifyTokenEmail, async (req, res) => {
+  const email = req.query.email;
+  const query = { guide_email: email };
+  const myPackages = await packagesCollection.find(query).toArray();
+  res.send(myPackages);
+  });
+
    
     // package details api
-    app.get('/packages/:id',async(req,res)=>{
+    app.get('/packages/:id',verifyFirebaseToken,async(req,res)=>{
       const id = req.params.id;
+      if (!ObjectId.isValid(id)) {
+      return res.status(400).send({ message: 'Invalid ID' });
+     }
+      
       const query = { _id: new ObjectId(id)}
       const result =await packagesCollection.findOne(query);
       res.send(result)
     })
-    app.post('/packages', async(req,res)=>{
+    app.post('/packages',verifyFirebaseToken,verifyTokenEmail,async(req,res)=>{
       const newPackage= req.body;
       const result = await packagesCollection.insertOne(newPackage);
       res.send(result)
     })
-    app.patch('/packages/:id',async(req, res) => {
+    app.patch('/packages/:id',verifyFirebaseToken,verifyTokenEmail,async(req, res) => {
     const id = req.params.id;
     const updatedData = req.body;
     const filter = { _id: new ObjectId(id) };
@@ -82,18 +129,18 @@ async function run() {
     const result = await packagesCollection.updateOne(filter, updateDoc)
     res.send(result)
    });
-   app.delete('/packages/:id', async (req, res) => {
+   app.delete('/packages/:id',verifyFirebaseToken,verifyTokenEmail, async (req, res) => {
     const id = req.params.id;
     const query = { _id: new ObjectId(id) };
-
+   
     const result = await packagesCollection.deleteOne(query);
     res.send(result);
    });
 
     //  booking related api
-    app.get('/bookings',async(req,res)=>{
+    app.get('/bookings',verifyFirebaseToken,verifyTokenEmail, async(req,res)=>{
       const email =req.query.email;
-
+   
       const query ={
             buyer_email: email
       }
@@ -102,8 +149,12 @@ async function run() {
 
     });
 
-    app.post('/bookings',async(req,res)=>{
-      const booking = req.body;
+    app.post('/bookings',verifyFirebaseToken,async(req,res)=>{
+    const booking = req.body;
+
+    if (!booking.tour_id ) {
+      return res.status(400).send({ message: 'forbidden access' });
+    }
       const result = await bookingCollection.insertOne(booking);
       const tourId = booking.tour_id;
       if(tourId){
@@ -115,8 +166,9 @@ async function run() {
       res.send(result)
     })
     // Update booking 
-    app.patch('/bookings/:id', async (req, res) => {
+    app.patch('/bookings/:id',verifyFirebaseToken,async (req, res) => {
       const id = req.params.id;
+    
       const filter = { _id: new ObjectId(id) };
       const updateDoc = {
       $set: {
