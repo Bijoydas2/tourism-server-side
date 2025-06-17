@@ -5,8 +5,9 @@ const port =process.env.PORT || 3000;
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 require('dotenv').config();
 const admin = require("firebase-admin");
+const decoded= Buffer.from(process.env.FB_SERVICE_KEY, 'base64').toString('utf8')
 
-const serviceAccount = require("./firebase-admin-service-key.json");
+const serviceAccount = JSON.parse(decoded);
 
 
 // middleware 
@@ -62,7 +63,7 @@ const verifyFirebaseToken = async(req,res,next)=>{
 async function run() {
   try {
     // Connect the client to the server	(optional starting in v4.7)
-    await client.connect();
+    // await client.connect();
     const packagesCollection = client.db('packageCode').collection('tourPackages');
     const bookingCollection = client.db('packageCode').collection('bookings')
     //  features-package api
@@ -106,12 +107,15 @@ async function run() {
     // package details api
     app.get('/packages/:id',verifyFirebaseToken,async(req,res)=>{
       const id = req.params.id;
-      if (!ObjectId.isValid(id)) {
+       
+       if (!ObjectId.isValid(id)) {
       return res.status(400).send({ message: 'Invalid ID' });
      }
       
+      
       const query = { _id: new ObjectId(id)}
       const result =await packagesCollection.findOne(query);
+     
       res.send(result)
     })
     app.post('/packages',verifyFirebaseToken,verifyTokenEmail,async(req,res)=>{
@@ -182,8 +186,8 @@ async function run() {
    
 
     // Send a ping to confirm a successful connection
-    await client.db("admin").command({ ping: 1 });
-    console.log("Pinged your deployment. You successfully connected to MongoDB!");
+    // await client.db("admin").command({ ping: 1 });
+    // console.log("Pinged your deployment. You successfully connected to MongoDB!");
   } finally {
     // Ensures that the client will close when you finish/error
     // await client.close();
