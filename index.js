@@ -65,7 +65,8 @@ async function run() {
     // Connect the client to the server	(optional starting in v4.7)
     // await client.connect();
     const packagesCollection = client.db('packageCode').collection('tourPackages');
-    const bookingCollection = client.db('packageCode').collection('bookings')
+    const bookingCollection = client.db('packageCode').collection('bookings');
+    const newsletterCollection = client.db('packageCode').collection('newletter')
     //  features-package api
     app.get('/featuredPackages',async(req,res)=>{
        const cursor = packagesCollection
@@ -118,6 +119,27 @@ async function run() {
      
       res.send(result)
     })
+
+  app.post('/newsletter', async (req, res) => {
+      try {
+        const { email } = req.body;
+        if (!email || !email.includes('@')) {
+          return res.status(400).send({ message: 'Valid email is required' });
+        }
+
+        const existing = await newsletterCollection.findOne({ email });
+        if (existing) {
+          return res.status(409).send({ message: 'Email already subscribed' });
+        }
+
+        await newsletterCollection.insertOne({ email, createdAt: new Date().toISOString() });
+        res.status(201).send({ message: 'Subscribed successfully' });
+      } catch (error) {
+        res.status(500).send({ message: 'Failed to subscribe' });
+      }
+    });
+
+
     app.post('/packages',verifyFirebaseToken,verifyTokenEmail,async(req,res)=>{
       const newPackage= req.body;
       const result = await packagesCollection.insertOne(newPackage);
