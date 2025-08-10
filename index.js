@@ -106,14 +106,8 @@ async function run() {
 
    
     // package details api
-    app.get('/packages/:id',verifyFirebaseToken,async(req,res)=>{
+    app.get('/packages/:id',async(req,res)=>{
       const id = req.params.id;
-       
-       if (!ObjectId.isValid(id)) {
-      return res.status(400).send({ message: 'Invalid ID' });
-     }
-      
-      
       const query = { _id: new ObjectId(id)}
       const result =await packagesCollection.findOne(query);
      
