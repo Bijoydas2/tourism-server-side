@@ -71,7 +71,7 @@ async function run() {
        const cursor = packagesCollection
       .find({})
       .sort({ bookingCount: -1 }) 
-      .limit(6);
+      .limit(8);
       const result = await cursor.toArray();
       res.send(result)
     })
